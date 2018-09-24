@@ -6,8 +6,8 @@
   "scripts": {
     "compile": "tsc",
     "watch": "tsc --watch",
-    "start": "npm run-script compile && node_modules/.bin/electron .",
-    "dev": "npm run-script watch & node_modules/.bin/electron ."
+    "start": "npm run compile && npx electron .",
+    "dev": "npm run compile && npm run watch & npx electron ."
   },
   "files": [
     "built/**"
@@ -22,10 +22,10 @@
     "@openid/appauth": "^0.3.5",
     "@types/react": "^16.3.17",
     "@types/react-dom": "^16.0.6",
-    "electron": "^2.0.2",
     "material-design-lite": "^1.3.0"
   },
   "devDependencies": {
-    "typescript": "^2.9.1"
+    "electron": "^2.0.2",
+    "typescript": "^3.0.3"
   }
 }

@@ -14,9 +14,9 @@
  * the License.
  */
 
-import {ipcRenderer} from 'electron';
-import {AuthFlow, AuthStateEmitter} from './flow';
-import {log} from './logger';
+import { ipcRenderer } from 'electron';
+import { AuthFlow, AuthStateEmitter } from './flow';
+import { log } from './logger';
 
 const SIGN_IN = 'Sign-In';
 const SIGN_OUT = 'Sign-Out';
@@ -37,23 +37,23 @@ interface UserInfo {
 
 export class App {
   private authFlow: AuthFlow = new AuthFlow();
-  private userInfo: UserInfo|null = null;
+  private userInfo: UserInfo | null = null;
 
   private handleSignIn =
-      document.querySelector('#handle-sign-in') as HTMLElement;
+    document.querySelector('#handle-sign-in') as HTMLElement;
 
   private fetchUserInfo =
-      document.querySelector('#handle-user-info') as HTMLElement;
+    document.querySelector('#handle-user-info') as HTMLElement;
 
   private userCard = document.querySelector('#user-info') as HTMLElement;
 
   private userProfileImage =
-      document.querySelector('#user-profile-image') as HTMLImageElement;
+    document.querySelector('#user-profile-image') as HTMLImageElement;
 
   private userName = document.querySelector('#user-name') as HTMLElement;
 
   private snackbarContainer: any =
-      document.querySelector('#appauth-snackbar') as HTMLElement;
+    document.querySelector('#appauth-snackbar') as HTMLElement;
 
   constructor() {
     this.initializeUi();
@@ -69,37 +69,37 @@ export class App {
     this.fetchUserInfo.addEventListener('click', () => {
       this.authFlow.performWithFreshTokens().then(accessToken => {
         let request =
-            new Request('https://www.googleapis.com/oauth2/v3/userinfo', {
-              headers: new Headers({'Authorization': `Bearer ${accessToken}`}),
-              method: 'GET',
-              cache: 'no-cache'
-            });
+          new Request('https://dev-639507.oktapreview.com/oauth2/default', {
+            headers: new Headers({ 'Authorization': `Bearer ${accessToken}` }),
+            method: 'GET',
+            cache: 'no-cache'
+          });
 
         fetch(request)
-            .then(result => result.json())
-            .then(user => {
-              log('User Info ', user);
-              this.userInfo = user;
-              this.updateUi();
-            })
-            .catch(error => {
-              log('Something bad happened ', error);
-            });
+          .then(result => result.json())
+          .then(user => {
+            log('User Info ', user);
+            this.userInfo = user;
+            this.updateUi();
+          })
+          .catch(error => {
+            log('Something bad happened ', error);
+          });
       });
     });
 
     this.authFlow.authStateEmitter.on(
-        AuthStateEmitter.ON_TOKEN_RESPONSE, () => {
-          this.updateUi();
-          //  request app focus
-          ipcRenderer.send('app-focus');
-        });
+      AuthStateEmitter.ON_TOKEN_RESPONSE, () => {
+        this.updateUi();
+        //  request app focus
+        ipcRenderer.send('app-focus');
+      });
   }
 
   signIn(username?: string): Promise<void> {
     if (!this.authFlow.loggedIn()) {
       return this.authFlow.fetchServiceConfiguration().then(
-          () => this.authFlow.makeAuthorizationRequest(username));
+        () => this.authFlow.makeAuthorizationRequest(username));
     } else {
       return Promise.resolve();
     }
@@ -119,7 +119,7 @@ export class App {
       this.userProfileImage.src = `${this.userInfo.picture}?sz=96`;
       this.userName.textContent = this.userInfo.name;
       this.showSnackBar(
-          {message: `Welcome ${this.userInfo.name}`, timeout: 4000});
+        { message: `Welcome ${this.userInfo.name}`, timeout: 4000 });
       this.userCard.style.display = '';
     }
   }

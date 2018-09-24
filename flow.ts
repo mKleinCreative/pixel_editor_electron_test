@@ -42,6 +42,7 @@ import EventEmitter = require("events");
 
 import { log } from "./logger";
 import { StringMap } from "@openid/appauth/built/types";
+import { AuthService } from './pkce';
 
 export class AuthStateEmitter extends EventEmitter {
   static ON_TOKEN_RESPONSE = "on_token_response";
@@ -51,13 +52,13 @@ export class AuthStateEmitter extends EventEmitter {
 const requestor = new NodeRequestor();
 
 /* an example open id connect provider */
-const openIdConnectUrl = "https://accounts.google.com";
+const openIdConnectUrl = "https://dev-639507.oktapreview.com/oauth2/default";
 
 /* example client configuration */
 const clientId =
-  "511828570984-7nmej36h9j2tebiqmpqh835naet4vci4.apps.googleusercontent.com";
-const redirectUri = "http://127.0.0.1:8000";
-const scope = "openid";
+  "0oagc1yxufONW5qOa0h7";
+const redirectUri = "https://localhost:8000";
+const scope = "openid profile offline_access";
 
 export class AuthFlow {
   private notifier: AuthorizationNotifier;
@@ -70,6 +71,7 @@ export class AuthFlow {
 
   private refreshToken: string | undefined;
   private accessTokenResponse: TokenResponse | undefined;
+  private challengePair: { verifier: string, challenge: string };
 
   constructor() {
     this.notifier = new AuthorizationNotifier();
@@ -83,7 +85,7 @@ export class AuthFlow {
     this.notifier.setAuthorizationListener((request, response, error) => {
       log("Authorization request complete ", request, response, error);
       if (response) {
-        this.makeRefreshTokenRequest(response.code)
+        this.makeRequestTokenRequest(response.code)
           .then(result => this.performWithFreshTokens())
           .then(() => {
             this.authStateEmitter.emit(AuthStateEmitter.ON_TOKEN_RESPONSE);
@@ -91,6 +93,7 @@ export class AuthFlow {
           });
       }
     });
+    this.challengePair = AuthService.getPKCEChallengePair();
   }
 
   fetchServiceConfiguration(): Promise<void> {
@@ -112,6 +115,8 @@ export class AuthFlow {
     const extras: StringMap = { prompt: "consent", access_type: "offline" };
     if (username) {
       extras["login_hint"] = username;
+      extras["code_challenge"] = this.challengePair.challenge;
+      extras["code_challenge_method"] = "S256";
     }
 
     // create a request
@@ -132,18 +137,21 @@ export class AuthFlow {
     );
   }
 
-  private makeRefreshTokenRequest(code: string): Promise<void> {
+  private makeRequestTokenRequest(code: string): Promise<void> {
     if (!this.configuration) {
       log("Unknown service configuration");
       return Promise.resolve();
     }
+
+    let tokenRequestExtras = { code_verifier: this.challengePair.verifier };
     // use the code to make the token request.
     let request = new TokenRequest(
       clientId,
       redirectUri,
       GRANT_TYPE_AUTHORIZATION_CODE,
       code,
-      undefined
+      undefined,
+      tokenRequestExtras
     );
 
     return this.tokenHandler
@@ -154,7 +162,7 @@ export class AuthFlow {
         this.accessTokenResponse = response;
         return response;
       })
-      .then(() => {});
+      .then(() => { });
   }
 
   loggedIn(): boolean {
